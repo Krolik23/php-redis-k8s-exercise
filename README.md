@@ -15,14 +15,14 @@ During the design phase of the solution, the following assumptions were made:
 
 This repository has two directories:
 
-- helm - this is the directory where a **tidio-app-chart** can be found. This is the main helm chart that has the complete set of manifests for deploying the solution
-- additional_resources - in this directory, raw manifest files can be found. The mian purpose is to have already generated manifests somewhere, just in case.
+- **helm** - this is the directory where a **tidio-app-chart** can be found. This is the main helm chart that has the complete set of manifests for deploying the solution
+- **additional_resources** - in this directory, raw manifest files can be found. The mian purpose is to have already generated manifests somewhere, just in case.
 
 ## 3. Deployment of the Configuration to the Cluster
 
 ### a. External resources creation
 
-Before deploying the application, the first step is to create an **SSL certificate** upfront, to be able to set the secure communication between **application** and the **Application Load Balancer**. 
+Before deploying the application, the first step is to create an **SSL certificate** upfront, to be able to set the secure communication between the **user** and the **application**. 
 
 For this purpose, we should be able to use a dedicated IaC repository with infrastructure code (e.g., Terraform) and configured CI/CD processes. In such a repository, after selecting the appropriate location in the directory structure, we add a configuration responsible for creating the certificate in AWS Secrets Manager.
 
@@ -36,7 +36,7 @@ To simplify the application deployment process as much as possible, application 
 
 #### 1. Build Helm Chart and sent it to the registry
 
-As the first step, application configuration should be properly build and send to the registry. Since Helm 3 supports OCI registires it is possible to keep it in eg. AWS ECR. An appropriate approach would be to create a dedicated repository for this Helm chart, allowing it to be independently developed and tagged along with the release of new versions. The CI/CD process configured with the repository should be responsible for syntax validation, configuration correctness, building, and pushing the Helm Chart to the registry.
+As the first step, application configuration should be properly build and send to the registry. Since Helm 3 supports OCI registires it is possible to keep it in eg. AWS ECR. An appropriate approach would be to create a dedicated repository for the Helm Charts code, allowing it to be independently developed and tagged along with the release of new versions. We should have CI/CD process configured with the repository, it would be responsible for syntax validation, configuration correctness, building, and pushing the Helm Chart to the registry.
 
 To manually prepare the Helm Chart and push it to, for example, ECR, we can use the commands below:
 ```
@@ -54,7 +54,7 @@ If applications are not yet created in this way, a detailed configuration descri
 
 #### 3. Create an ArgoCD Application object configuration and use the previously built Helm Chart in it.
 
-To deploy the configuration using ArgoCD, it is necessary to create an additional manifest for the Application object, which will be responsible for deploying the Helm chart. If the App of Apps is properly configured in ArgoCD, this should be the only task to perform. After placing the correct Application object configuration in the configured location monitored by App of Apps, the entire solution should be successfully deployed in the cluster.
+To deploy the configuration using ArgoCD, it is necessary to create an additional manifest for the Application object, which will be responsible for deploying the Helm Chart. If the App of Apps is properly configured in ArgoCD, this should be the only task to perform. After placing the correct Application object configuration in the configured location monitored by App of Apps, the entire solution should be successfully deployed in the cluster.
 
 The example manifest for the Application resource is presented below:
 ```
@@ -102,4 +102,4 @@ spec:
 
 ## Summary
 
-In summary, when using the GitOps approach and with the heavy lifting handled by tools like ArgoCD, there is no need for many commands or manual operations to deploy a pre-prepared solution in the cluster. This also brings additional benefits, such as the ability to easily roll back a specific release or a very simple process for releasing new versions of the application.
+To sum up, when using the GitOps approach and with the heavy lifting handled by tools like ArgoCD, there is no need for many commands or manual operations to deploy a prepared solution in the cluster. This also brings additional benefits, such as the ability to easily roll back a specific release or a very simple process for releasing new versions of the application.
