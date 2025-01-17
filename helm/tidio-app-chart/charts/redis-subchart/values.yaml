@@ -1,0 +1,54 @@
+# Helm charts are prepared to use the default values in order to render proper manifests. They can be edited though at any point.
+
+general:
+  namespace: tidio-app
+
+redisApp:
+  appName: redis-tidio-app
+  replicas: 3
+  image: redis:7.4.2-alpine
+  imagePullPolicy: Always
+  resources:
+    requests:
+      memory: "600Mi"
+      cpu: "200m"
+    limits:
+      memory: "600Mi"
+      cpu: "200m"
+  probes:
+    readinessProbe:
+      initialDelaySeconds: 15
+      timeoutSeconds: 5
+    livenessProbe:
+      initialDelaySeconds: 20
+      periodSeconds: 3
+  
+
+serviceAccounts:
+  redisServiceAccount: redis-tidio-app
+  secretStoreServiceAccount: secretstore-tidio-app
+
+container:
+  securityContext:
+    runAsNonRoot: true
+    # Run with user ID 1000
+    runAsUser: 1000
+
+configMaps:
+  varsCMName: redis-connection-vars-v1
+  redisConfFile: |
+    # Redis configuration file
+
+    # Configure AOF
+    appendonly yes
+    appendfilename "appendonly.aof"
+    appenddirname "/data"
+
+    # Configure RDB
+    # backup every 10 min if at least 1 key changed
+    save 600 1
+  redisConnectionVars:
+    REDIS_PORT: "6379"
+    REDIS_READ_URL: redis-tidio-app.tidio-app.svc.cluster.local
+    REDIS_WRITE_URL: redis-tidio-app-0.redis-tidio-app-write.tidio-app.svc.cluster.local
+  

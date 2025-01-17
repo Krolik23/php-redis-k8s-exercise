@@ -1,0 +1,30 @@
+# Ingress resource added with assumption that AWS Load Balancer Controller is deployed in the cluster
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: '300'
+    alb.ingress.kubernetes.io/target-type: ip
+    # Decided to attach it through annotation. A good idea would be to use the Certificate Discovery functionality of AWS LB Controller instead,
+    # both cases require external creation of the cert though.
+    # Creating ACM through crossplane CRD + Certificate Discovery on the Ingress level would be an interesting solution but requires crossplane deployed additionally.
+    alb.ingress.kubernetes.io/certificate-arn: <ARN:OF:ACM-GENERATED:SSL:CERT>
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: '443'
+    alb.ingress.kubernetes.io/group.name: tidio-app-alb
+    alb.ingress.kubernetes.io/group.order: '1'
+  name: app-php-tidio
+spec:
+  ingressClassName: alb
+  rules:
+  - host: "app-php.tidio"
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: app-php-tidio
+            port:
+              number: 80

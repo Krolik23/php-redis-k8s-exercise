@@ -1,0 +1,55 @@
+# ConfigMap with a script that will set the first stateful pod as a master and register the rest as slaves
+---
+apiVersion: v1
+data:
+  startup.sh: |
+    #!/bin/bash
+
+    PASSWORD=$REDIS_PASSWORD
+
+    if [[ "${HOSTNAME}" == "redis-tidio-app-0" ]]; then
+      redis-server /usr/local/etc/redis/redis.conf --requirepass ${PASSWORD}
+    else
+      redis-server /usr/local/etc/redis/redis.conf --slaveof redis-tidio-app-0.redis-tidio-app 6379 --masterauth ${PASSWORD} --requirepass ${PASSWORD}
+    fi
+kind: ConfigMap
+metadata:
+  name: redis-startup-v1
+  namespace: tidio-app
+  labels:
+    app: redis-tidio-app
+    
+---
+apiVersion: v1
+data:
+  redis.conf: |
+    # Redis configuration file
+
+    # Configure AOF
+    appendonly yes
+    appendfilename "appendonly.aof"
+    appenddirname "/data"
+
+    # Configure RDB
+    # backup every 10 min if at least 1 key changed
+    save 600 1
+kind: ConfigMap
+metadata:
+  name: redis-custom-config-v1
+  namespace: tidio-app
+  labels:
+    app: redis-tidio-app
+
+## ConfigMap with all redis connection information
+---
+apiVersion: v1
+data:
+  REDIS_PORT: "6379"
+  REDIS_READ_URL: redis-tidio-app.tidio-app.svc.cluster.local
+  REDIS_WRITE_URL: redis-tidio-app-0.redis-tidio-app-write.tidio-app.svc.cluster.local
+kind: ConfigMap
+metadata:
+  name: redis-connection-vars-v1
+  namespace: tidio-app
+  labels:
+    app: redis-tidio-app

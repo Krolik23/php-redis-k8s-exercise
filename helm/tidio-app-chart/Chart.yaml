@@ -1,0 +1,6 @@
+apiVersion: v2
+name: tidio-app-chart
+description: Helm Umbrella Chart for deploying all needed resources for the tidio-app
+type: application
+version: 0.1.0
+appVersion: 1.0.0

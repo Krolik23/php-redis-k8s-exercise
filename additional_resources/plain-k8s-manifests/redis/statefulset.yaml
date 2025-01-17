@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis-tidio-app
+  labels:
+    app: redis-tidio-app
+  namespace: tidio-app
+spec:
+  serviceName: redis-tidio-app
+  replicas: 3
+  selector:
+    matchLabels:
+      app: redis-tidio-app
+  template:
+    metadata:
+      labels:
+        app: redis-tidio-app
+    spec:
+      serviceAccountName: redis-tidio-app
+      containers:
+      - name: redis-tidio-app
+        image: redis:7.4.2-alpine
+        command:
+        - sh
+        - -c
+        - /script/startup.sh
+        securityContext:
+          runAsNonRoot: true
+          # Run with user ID 1000
+          runAsUser: 1000
+        # Force kubernetes to verify digest of the image with what it has cached on the node
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 6379
+          name: redis-client
+        # Influenced by "Guaranteed quality of service" section in redis docs, memory/cpu requests=limits configured.
+        resources:
+          requests:
+            memory: "600Mi"
+            cpu: "200m"
+          limits:
+            memory: "600Mi"
+            cpu: "200m"
+        env:
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-access-app-tidio
+              key: REDIS_PASSWORD
+        volumeMounts:
+        # Mount startup script
+        - name: redis-startup-script
+          mountPath: /script/startup.sh
+          subPath: startup.sh
+        # As redis is to be considered as persistent, custom config is mounted to make sure that full persistency is enabled. It is then used in the startup.sh script
+        - name: redis-custom-config
+          mountPath: /usr/local/etc/redis/redis.conf
+          subPath: redis.conf
+        - name: redis-data-dir
+          mountPath: /data
+        readinessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - "redis-cli -h $(hostname) ping"
+          initialDelaySeconds: 15
+          timeoutSeconds: 5
+        livenessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - "redis-cli -h $(hostname) ping"
+          initialDelaySeconds: 20
+          periodSeconds: 3
+      volumes:
+      - name: redis-startup-script
+        configMap:
+          name: redis-startup-v1
+          defaultMode: 0777
+      - name: redis-custom-config
+        configMap:
+          name: redis-custom-config-v1
+      - name: redis-data-dir
+        # Since it doesn't need to preserve data between restarts, we're using emptyDir. Data is safe across container crashes but lasts for the life of the Pod.
+        emptyDir:
+          sizeLimit: 10Gi

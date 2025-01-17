@@ -1,0 +1,7 @@
+apiVersion: v1
+data:
+  app-php.ini: {{- .Values.phpApp.phpConfig | toYaml | indent 1 }}
+kind: ConfigMap
+metadata:
+  name: {{ .Values.phpApp.phpConfigName }}
+  namespace: {{ .Values.general.namespace }}

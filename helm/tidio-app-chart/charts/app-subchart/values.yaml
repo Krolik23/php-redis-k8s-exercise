@@ -1,0 +1,54 @@
+# Helm charts are prepared to use the default values in order to render proper manifests. They can be edited though at any point.
+
+general:
+  namespace: tidio-app
+
+phpApp:
+  appName: app-php-tidio
+  replicas: 2
+  image: php:8.2-apache
+  imagePullPolicy: Always
+  phpConfigName: app-php-custom-config-v1
+  phpConfig: |
+    [PHP]
+    ; log_errors
+    ;   Default Value: Off
+    ;   Development Value: On
+    ;   Production Value: On
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "300m"
+    limits:
+      memory: "256Mi"
+      cpu: "600m"
+  probes:
+    readinessProbe:
+      initialDelaySeconds: 5
+      periodSeconds: 10
+    livenessProbe:
+      initialDelaySeconds: 10
+      periodSeconds: 30
+  
+
+serviceAccounts:
+  phpAppServiceAccount: app-php-tidio
+  secretStoreServiceAccount: secretstore-tidio-app
+
+container:
+  securityContext:
+    runAsNonRoot: true
+    # Run with user ID 1000
+    runAsUser: 1000
+
+redis:
+  varsCMName: redis-connection-vars-v1
+
+ingress:
+  albGroupName: tidio-app-alb
+  ingressClassName: alb
+  albGroupOrder: 1
+  certificateArn: <ARN:OF:ACM-GENERATED:SSL:CERT>
+  healthcheckIntervalSeconds: 300
+
+

@@ -1,0 +1,38 @@
+# For the full setup of redis master-slave we need two different Kubernetes Services
+
+# Service for read operations - Redis is replicating data across all instances so for this case
+# classic ClusterIP service, balancing the traffic randomly, will be ideal.
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: redis-tidio-app
+  name: redis-tidio-app
+  namespace: tidio-app
+spec:
+  ports:
+  - port: 6379
+    protocol: TCP
+    targetPort: 6379
+  selector:
+    app: redis-tidio-app
+  sessionAffinity: None
+  type: ClusterIP
+
+# Service for write operations - for write operations we need to target the Redis master instance (redis-tidio-app-0 in this case).
+# For that a headless Service is created to expose each pod behind and provide a DNS entry for it.
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: redis-tidio-app-write
+  name: redis-tidio-app-write
+  namespace: tidio-app
+spec:
+  clusterIP: None
+  ports:
+  - port: 6379
+  selector:
+    app: redis

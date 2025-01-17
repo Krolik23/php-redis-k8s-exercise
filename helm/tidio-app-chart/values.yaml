@@ -1,0 +1,9 @@
+## All values from subcharts can be overwritten through this file
+
+app-subchart:
+  phpApp:
+    image: php:8.2-apache
+
+redis-subchart:
+  redisApp:
+    image: redis:7.4.2-alpine

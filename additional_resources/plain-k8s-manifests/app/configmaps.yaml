@@ -1,0 +1,12 @@
+apiVersion: v1
+data:
+  app-php.ini: |-
+    [PHP]
+    ; log_errors
+    ;   Default Value: Off
+    ;   Development Value: On
+    ;   Production Value: On
+kind: ConfigMap
+metadata:
+  name: app-php-custom-config-v1
+  namespace: tidio-app

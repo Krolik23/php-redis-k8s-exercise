@@ -1,0 +1,45 @@
+# ConfigMap with a script that will set the first stateful pod as a master and register the rest as slaves
+---
+apiVersion: v1
+data:
+  startup.sh: |
+    #!/bin/bash
+
+    PASSWORD=$REDIS_PASSWORD
+    
+    if [[ "${HOSTNAME}" == "redis-tidio-app-0" ]]; then
+      redis-server /usr/local/etc/redis/redis.conf --requirepass ${PASSWORD}
+    else
+      redis-server /usr/local/etc/redis/redis.conf --slaveof redis-tidio-app-0.redis-tidio-app 6379 --masterauth ${PASSWORD} --requirepass ${PASSWORD}
+    fi  
+kind: ConfigMap
+metadata:
+  name: redis-startup-v1
+  namespace: {{ .Values.general.namespace }}
+  labels:
+    {{- include "redis-subchart.labels" . | nindent 4 }}
+    
+---
+apiVersion: v1
+data:
+  redis.conf: {{- .Values.configMaps.redisConfFile | toYaml | indent 1 }}
+kind: ConfigMap
+metadata:
+  name: redis-custom-config-v1
+  namespace: {{ .Values.general.namespace }}
+  labels:
+    {{- include "redis-subchart.labels" . | nindent 4 }}
+
+## ConfigMap with all redis connection information
+---
+apiVersion: v1
+data:
+{{- range $key, $value := index .Values "configMaps" "redisConnectionVars" }}
+  {{ $key }}: {{ $value | quote }}
+{{- end }}
+kind: ConfigMap
+metadata:
+  name: {{ .Values.configMaps.varsCMName }}
+  namespace: {{ .Values.general.namespace }}
+  labels:
+    {{- include "redis-subchart.labels" . | nindent 4 }}

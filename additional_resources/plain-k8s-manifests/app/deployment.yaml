@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-php-tidio
+  labels:
+    app: app-php-tidio
+  namespace: tidio-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: app-php-tidio
+  template:
+    metadata:
+      labels:
+        app: app-php-tidio
+    spec:
+      serviceAccountName: app-php-tidio
+      containers:
+      - name: app-php-tidio
+        image: php:8.2-apache
+        securityContext:
+          runAsNonRoot: true
+          # Run with user ID 1000
+          runAsUser: 1000
+        # Force kubernetes to verify digest of the image with what it has cached on the node
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+        # Set memory/cpu requests=limits to have stability in this aspect and cpu requests != limits to minimize perf. variability but still have some burstable capabilities
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "300m"
+          limits:
+            memory: "256Mi"
+            cpu: "600m"
+        # Load redis connection envs vars from ConfigMap created along with other redis resources
+        envFrom:
+        - configMapRef:
+            name: redis-connection-vars-v1
+        env:
+        - name: DB_CONNECTION_STRING
+          valueFrom:
+            secretKeyRef:
+              name: db-access-app-php-tidio
+              key: DB_CONNECTION_STRING
+        - name: DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: db-access-app-php-tidio
+              key: DB_USERNAME
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-access-app-php-tidio
+              key: DB_PASSWORD
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-access-app-tidio
+              key: REDIS_PASSWORD
+        volumeMounts:
+        # Add ability for basic php config customization through ConfigMap object
+        - name: app-php-custom-config
+          mountPath: /usr/local/etc/php/conf.d/app-php.ini
+          subPath: app-php.ini
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 30
+      volumes:
+      - name: app-php-custom-config
+        configMap:
+          name: app-php-custom-config-v1
+        
